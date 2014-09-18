@@ -19,4 +19,5 @@ $urls = array(
     'string'            => 'onestring',
     'productization'    => 'productization',
     'api'               => 'api',
+    'locale'            => 'locale', // test for new product classes
 );

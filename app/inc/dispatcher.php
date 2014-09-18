@@ -89,6 +89,11 @@ switch ($url['path']) {
         $page_descr = '';
         $template = false;
         break;
+    case 'locale':
+        $controller = 'locale';
+        $page_title = 'New product class experiment to extract string per software';
+        $page_descr = '';
+        break;
     default:
         $controller = 'mainsearch';
         break;
