@@ -32,14 +32,22 @@ class Product
     protected $strings = [];
 
     /**
-     * The constructor sets Firefox/release/en-US as defaults
+     * The constuctor sets Firefox/release/en-US and includes access keys by default
+     *
+     * @param  string  $product The product we want to analyse (part of $product_list), defaults to Firefox
+     * @param  string  $locale  The locale code for the product, defaults to en-US
+     * @param  string  $repository The repository for the product,  defaults to release
+     * @param  boolean $keys Do we include access keys? Defaults to yes.
      * @return void
      */
-    public function __construct($product = 'Firefox', $locale = 'en-US', $repository = 'release')
+    public function __construct($product = 'Firefox', $locale = 'en-US', $repository = 'release', $keys = true)
     {
         $this->setProduct($product);
         $this->setLocale($locale);
         $this->setRepository($repository);
+        if (! $keys) {
+            $this->excludeAccesskeys();
+        }
     }
 
     /**
@@ -151,10 +159,7 @@ class Product
      */
     public function getDevToolsStrings()
     {
-        /** Devtools are Firefox only, if we are not working on Firefox strings
-         *  we need to switch to that and extract the right strings before
-         * filtering them.
-         */
+        /* Devtools are Firefox only */
         if ($this->product != 'Firefox') {
             return [];
         }
@@ -223,11 +228,14 @@ class Product
         $entities = array_flip(array_unique($entities));
 
         // We now store only the strings relevant for the product
-        $this->strings = array_intersect_key($this->strings, $entities);
+        $devtools = array_intersect_key($this->strings, $entities);
 
-        Cache::setKey($cache_id, $this->strings);
+        // Remove empty strings, in Transvision an empty string is always missing
+        $devtools = array_filter($devtools, 'strlen');
 
-        return $this->strings;
+        Cache::setKey($cache_id, $devtools);
+
+        return $devtools;
     }
 
     /**
@@ -317,15 +325,18 @@ class Product
                     'browser/branding/nightly',
                     'browser/branding/unofficial',
                     // Strings optional for locales, safe to ignore
-                    'browser/chrome/browser/preferences/sync.dtd:signedInUnverified.beforename.label',
                     'toolkit/chrome/global/intl.properties:intl.charset.detector',
                     'toolkit/chrome/global-platform/mac/platformKeys.properties:MODIFIER_SEPARATOR',
+                    'toolkit/chrome/global/intl.properties:intl.menuitems.alwaysappendaccesskeys',
+                    'browser/chrome/browser/preferences/sync.dtd:signedInUnverified.beforename.label',
                     'browser/chrome/browser/translation.dtd:translation.options.attribution.afterLogo',
                     'browser/chrome/browser/preferences/content.dtd:translation.options.attribution.afterLogo',
-                    'toolkit/chrome/global/intl.properties:intl.menuitems.alwaysappendaccesskeys',
                     'browser/chrome/browser/syncSetup.dtd:setup.tosAgree3.label',
                     'browser/chrome/browser/preferences/sync.dtd:signedInLoginFailure.aftername.label',
                     'browser/chrome/browser/aboutDialog.dtd:community.exp.start',
+                    'browser/chrome/browser/preferences/privacy.dtd:locbar.post.label',
+                    'browser/chrome/browser/preferences/aboutPermissions.dtd:header.site.end',
+                    'browser/chrome/browser/translation.dtd:translation.translatedToSuffix.label',
                  ];
                 $include = [
                     'browser',
