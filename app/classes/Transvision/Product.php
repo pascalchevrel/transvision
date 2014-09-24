@@ -324,6 +324,8 @@ class Product
                     'browser/chrome/browser/preferences/content.dtd:translation.options.attribution.afterLogo',
                     'toolkit/chrome/global/intl.properties:intl.menuitems.alwaysappendaccesskeys',
                     'browser/chrome/browser/syncSetup.dtd:setup.tosAgree3.label',
+                    'browser/chrome/browser/preferences/sync.dtd:signedInLoginFailure.aftername.label',
+                    'browser/chrome/browser/aboutDialog.dtd:community.exp.start',
                  ];
                 $include = [
                     'browser',
