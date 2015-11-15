@@ -40,7 +40,6 @@ if (isset($_GET['json'])) {
         . "{$type}/{$repo}/{$source}/{$target}/{$terms}/{$regex}");
     exit;
 }
-
 // Bootstrap l10n
 require_once INC . 'l10n-init.php';
 
@@ -77,10 +76,6 @@ if ($check['t2t']) {
 
         return;
     }
-
-    // Valid search, we load all the strings
-    $tmx_source = Utils::getRepoStrings($source_locale, $check['repo']);
-    $tmx_target = Utils::getRepoStrings($locale, $check['repo']);
 
     if ($check['search_type'] == 'entities') {
         require_once MODELS . 'mainsearch_entities.php';

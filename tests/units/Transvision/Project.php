@@ -33,9 +33,13 @@ class Project extends atoum\test
     {
         $obj = new _Project();
         $repos = ['release', 'beta', 'aurora', 'central', 'gaia_2_0',
-                  'gaia_2_1', 'gaia', 'mozilla_org', ];
+                  'gaia_2_1', 'gaia', 'mozilla_org'];
         $this
             ->array($obj->getRepositories())
+                ->isEqualTo($repos);
+        $repos[] = 'global';
+        $this
+            ->array($obj->getRepositories(true))
                 ->isEqualTo($repos);
     }
 
@@ -51,6 +55,7 @@ class Project extends atoum\test
             'gaia_2_1'    => 'Gaia 2.1',
             'gaia'        => 'Gaia Master',
             'mozilla_org' => 'mozilla.org',
+            'global'      => 'All repositories',
         ];
         $this
             ->array($obj->getRepositoriesNames())
@@ -97,7 +102,7 @@ class Project extends atoum\test
     public function getLocaleRepositoriesDP()
     {
         return [
-            ['fr', ['central', 'mozilla_org']],
+            ['fr', ['central', 'mozilla_org',]],
             ['foobar', []],
         ];
     }
@@ -129,6 +134,9 @@ class Project extends atoum\test
         $obj = new _Project();
         $this
             ->boolean($obj->isValidRepository('central'))
+                ->isEqualTo(true);
+        $this
+            ->boolean($obj->isValidRepository('global'))
                 ->isEqualTo(true);
         $this
             ->boolean($obj->isValidRepository('foo'))

@@ -13,15 +13,13 @@ $initial_search_decoded = htmlentities($initial_search);
 $check = [];
 
 foreach ($form_checkboxes as $val) {
-    $check[$val] = (isset($_GET[$val])) ? true : false;
+    $check[$val] = isset($_GET[$val]);
 }
 
-// Check for default_repository cookie, if not set default repo to 'central'
-if (isset($_COOKIE['default_repository'])) {
-    $check['repo'] = $_COOKIE['default_repository'];
-} else {
-    $check['repo'] = 'aurora';
-}
+// Check for default_repository cookie, if not set default repo to 'aurora'
+$check['repo'] = isset($_COOKIE['default_repository'])
+    ? $_COOKIE['default_repository']
+    : 'aurora';
 
 if (isset($_GET['repo']) && in_array($_GET['repo'], $repos)) {
     $check['repo'] = $_GET['repo'];
@@ -39,11 +37,6 @@ if (isset($_GET['search_type'])
 
 // Locales list for the select boxes
 $loc_list = Project::getRepositoryLocales($check['repo']);
-
-// Deal with special cases depending on checkboxes ticked on or off
-if ($check['wild']) {
-    $my_search = str_replace('*', '.+', $my_search);
-}
 
 // Search for perfectMatch
 if ($check['perfect_match']) {
@@ -65,8 +58,7 @@ $repo_list = Utils::getHtmlSelectOptions($repos_nice_names, $check['repo'], true
 $loc_list = [];
 $source_locales_list = [];
 $target_locales_list = [];
-$repositories = Project::getRepositories();
-foreach ($repositories as $repository) {
+foreach (Project::getRepositories(true) as $repository) {
     $loc_list[$repository] = Project::getRepositoryLocales($repository);
 
     // build the source locale switcher

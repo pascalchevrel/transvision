@@ -1,77 +1,66 @@
 <?php
 namespace Transvision;
 
-if ($check['perfect_match']) {
-    $locale1_strings = preg_grep($main_regex, $tmx_source);
-    $locale2_strings = preg_grep($main_regex, $tmx_target);
-} else {
-    $locale1_strings = $tmx_source;
-    $locale2_strings = $tmx_target;
-    foreach (Utils::uniqueWords($initial_search) as $word) {
-        $regex = $delimiter . $whole_word . preg_quote($word, $delimiter) .
-                 $whole_word . $delimiter . $case_sensitive . 'u';
-        $locale1_strings = preg_grep($regex, $locale1_strings);
-        $locale2_strings = preg_grep($regex, $locale2_strings);
-    }
+// Define our source and target locales
+$locales = [$source_locale, $locale];
+if ($page == '3locales') {
+    $locales[] = $locale2;
 }
 
-if ($check['search_type'] == 'strings_entities') {
-    $entities = ShowResults::searchEntities($tmx_source, $main_regex);
-    foreach ($entities as $entity) {
-        $locale1_strings[$entity] = $tmx_source[$entity];
-    }
-}
+// Define our regex and our locales
+$search = (new Search)
+    ->setSearchTerms(Utils::cleanString($_GET['recherche']))
+    ->setRegexWholeWords($check['whole_word'])
+    ->setRegexCase($check['case_sensitive'])
+    ->setRegexPerfectMatch($check['perfect_match'])
+    ->setLocales($locales)
+    ->setResultsLimit(200)
+;
 
-$real_search_results = count($locale1_strings);
-$limit_results = 200;
-// Limit results to 200 per locale
-array_splice($locale1_strings, $limit_results);
-array_splice($locale2_strings, $limit_results);
-
-$searches = [
-    $source_locale => $locale1_strings,
-    $locale        => $locale2_strings,
-];
-
-$data = [$tmx_source, $tmx_target];
-
-// 3locales view
-if ($url['path'] == '3locales') {
-    $check['extra_locale'] = $locale2;
-    $searches[$locale2] = $locale3_strings;
-    $data[] = $tmx_target2;
-}
+$repo_loop = ($repo == 'global')
+    ? Project::getRepositories()
+    : [$repo];
 
 $search_yields_results = false;
 
 // This will hold the components names for the search filters
 $components = [];
 
-foreach ($searches as $key => $value) {
-    $search_results = ShowResults::getTMXResults(array_keys($value), $data);
-    $components += Project::getComponents($search_results);
+$search_results = [];
 
-    if (count($value) > 0) {
-        // We have results, we won't display search suggestions but search results
-        $search_yields_results = true;
+// We loop through all repositories searched and merge results
+foreach ($repo_loop as $repository) {
+    $search->setRepository($repository);
+    // This is the reference data
+    $data =[
+        Utils::getRepoStrings($source_locale, $repository),
+        Utils::getRepoStrings($locale, $repository)
+    ];
 
-        $search_id = strtolower(str_replace('-', '', $key));
-        $message_count = $real_search_results > $limit_results
-            ? "<span class=\"results_count_{$search_id}\">{$limit_results} results</span> out of {$real_search_results}"
-            : "<span class=\"results_count_{$search_id}\">" . Utils::pluralize(count($search_results), 'result') . '</span>';
+    foreach ($search->getResults() as $key => $value) {
+        $search_results = array_merge($search_results, ShowResults::getTMXResults(array_keys($value), $data));
+        $components += Project::getComponents($search_results);
+        if (count($value) > 0) {
+            // We have results, we won't display search suggestions but search results
+            $search_yields_results = true;
+            $search_id = strtolower(str_replace('-', '', $key));
+            $real_search_results = count($search->getResults()[$key]);
 
-        $output[$key] = "<h2>Displaying {$message_count} for the string "
-                        . "<span class=\"searchedTerm\">{$initial_search_decoded}</span> in {$key}:</h2>";
-        $output[$key] .= ShowResults::resultsTable($search_id, $search_results, $initial_search, $source_locale, $locale, $check);
-    } else {
-        $output[$key] = "<h2>No matching results for the string "
-                        . "<span class=\"searchedTerm\">{$initial_search_decoded}</span>"
-                        . " for the locale {$key}</h2>";
+            $message_count = $real_search_results > $search->limit
+            ? "<span>{$search->limit} results</span> out of {$real_search_results}"
+            : "<span>" . Utils::pluralize(count($search_results), 'result') . '</span>';
+
+            $output[$key] = "<h2>Displaying {$message_count} for the string "
+            . "<span class=\"searchedTerm\">{$initial_search_decoded}</span> in {$key}:</h2>";
+            $output[$key] .= ShowResults::resultsTable($search_id, $search_results, $initial_search, $source_locale, $locale, $check);
+        } else {
+            $output[$key] = "<h2>No matching results for the string "
+            . "<span class=\"searchedTerm\">{$initial_search_decoded}</span>"
+            . " for the locale {$key}</h2>";
+        }
     }
+    unset($data);
 }
-
-// Remove duplicated components
-$components = array_unique($components);
 
 // Display a search hint for the closest string we have if we have no search results
 if (! $search_yields_results) {
@@ -86,13 +75,17 @@ if (! $search_yields_results) {
     include VIEWS . 'results_similar.php';
 
     return;
-} else {
-    if (in_array($check['repo'], $desktop_repos)) {
-        // Build logic to filter components
-        $javascript_include[] = '/js/component_filter.js';
-        $filter_block = '';
-        foreach ($components as $value) {
-            $filter_block .= " <a href='#{$value}' id='{$value}' class='filter'>{$value}</a>";
-        }
-    }
 }
+
+// Build logic to filter components
+$javascript_include[] = 'component_filter.js';
+$filter_block = '';
+
+// Remove duplicated components
+$components = array_unique($components);
+
+foreach ($components as $value) {
+    $filter_block .= " <a href='#{$value}' id='{$value}' class='filter'>{$value}</a>";
+}
+
+skipped:

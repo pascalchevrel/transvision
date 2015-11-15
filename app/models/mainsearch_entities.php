@@ -1,6 +1,9 @@
 <?php
 namespace Transvision;
 
+$tmx_source = Utils::getRepoStrings($source_locale, $check['repo']);
+$tmx_target = Utils::getRepoStrings($locale, $check['repo']);
+
 // rtl support
 $direction1 = RTLSupport::getDirection($source_locale);
 $direction2 = RTLSupport::getDirection($locale);
