@@ -5,18 +5,25 @@ namespace Transvision;
  * Search class
  *
  * Allows searching for data in our repositories using a fluent interface.
- * Currently, only the regex part (definition of the search) is implemented.
- * e.g.:
+ * ex:
  * $search = (new Search)
  *     ->setSearchTerms('Bookmark this page')
  *     ->setRegexWholeWords(true)
  *     ->setRegexCaseInsensitive(true)
- *     ->setRegexPerfectMatch(false);
+ *     ->setRegexPerfectMatch(false)
+ *     ->setLocales(['en-US', 'fr', 'de'])
+ *     ->setResultsLimit(400);
  */
 class Search
 {
     /**
-     * The trimmed string searched, we keep it   as the canonical reference
+     * List of locales we search strings for, can be up to 3 locales
+     * @var array
+     */
+    protected $locales;
+
+    /**
+     * The trimmed string searched, we keep that one as the canonical reference
      * @var string
      */
     protected $search_terms;
@@ -46,29 +53,44 @@ class Search
     protected $regex_perfect_match;
 
     /**
-     * The search terms for the regex, these differ from $search_terms as
+     * The search terms for the regex, those differ from $search_terms as
      * they can be changed dynamically via setRegexSearchTerms()
      * @var string
      */
     protected $regex_search_terms;
 
     /**
+     * The repository we search in. Default is Aurora
+     * @var string
+     */
+    protected $repository;
+
+    /**
+     * Maximum number of search results we return per locale
+     * @var int
+     */
+    protected $limit;
+
+    /**
      * We set the default values for a search
      */
     public function __construct()
     {
+        $this->locales = [];
         $this->search_terms = '';
         $this->regex = '';
         $this->regex_case = 'i';
         $this->regex_whole_words = '';
         $this->regex_perfect_match = false;
         $this->regex_search_terms = '';
+        $this->repository = 'aurora';
+        $this->limit = 200;
     }
 
     /**
      * Store the searched string in $search_terms and in $regex_search_terms
      *
-     * @param  string $string String we want to search for
+     * @param [type] $string [description]
      * @return $this
      */
     public function setSearchTerms($string)
@@ -81,11 +103,52 @@ class Search
     }
 
     /**
+     * Set the locales we want results for.
+     * Normal searches work with 2 locales, but we also have a 3 locales view.
+     *
+     * @param array $locales Locale codes
+     * @return $this
+     */
+    public function setLocales(array $locales)
+    {
+        $this->locales = array_unique($locales);
+
+        return $this;
+    }
+
+    /**
+     * Set the repository in which we want to search for data.
+     * Remember that 'global' will search through all supported repositories.
+     *
+     * @param string $repository Valid repository from Project::getRepositories()
+     * @return $this
+     */
+    public function setRepository($repository)
+    {
+        $this->repository = $repository;
+
+        return $this;
+    }
+
+    /**
+     * Set the maximum number of results we want to return per locale
+     *
+     * @param int $number Maximum number of results
+     * @return $this
+     */
+    public function setResultsLimit($number)
+    {
+        $this->limit = (int) $number;
+
+        return $this;
+    }
+
+    /**
      * Allows setting a new searched term for the regex.
      * This is mostly useful when you have a multi-words search and need to
      * loop through all the words to return results.
      *
-     * @param  string $string The string we want to update the regex for
+     * @param string $string The string we want to update the regex for
      * @return $this
      */
     public function setRegexSearchTerms($string)
@@ -111,8 +174,7 @@ class Search
     }
 
     /**
-     * Set the regex to only return perfect matches for the searched string.
-     * We cast the value to a boolean because we usually get it from a GET.
+     * Set the regex to only return perfect matches for the searched string
      *
      * @param  boolean $flag Set to True for a perfect match
      * @return $this
@@ -127,27 +189,71 @@ class Search
 
     /**
      * Set the regex so as that a multi-word search is taken as a single word.
-     * We cast the value to a boolean because we usually get it from a GET.
      *
-     * @param  boolean $flag A string evaluated to True will add \b to the regex
+     * @param  string $flag A string evaluated to True will add \b to the regex
      * @return $this
-     */
+    */
     public function setRegexWholeWords($flag)
     {
-        $this->regex_whole_words = (boolean) $flag ? '\b' : '';
+        $this->regex_whole_words = $flag ? '\b' : '';
         $this->updateRegex();
 
         return $this;
     }
 
     /**
-     * Update the $regex_search_terms value every time a setter to the regex
-     * is called.
+     * Split a sentence in words from longest to shortest
+     *
+     * @param  string $sentence
+     * @return array  all the words in the sentence sorted by length
+     */
+    public static function uniqueWords($sentence)
+    {
+        $words = explode(' ', $sentence);
+        $words = array_filter($words); // filter out extra spaces
+        $words = array_unique($words); // remove duplicate words
+        // sort words from longest to shortest
+        usort(
+            $words,
+            function ($a, $b) {
+                return mb_strlen($b) - mb_strlen($a);
+            }
+        );
+
+        return $words;
+    }
+
+    /**
+     * Return an array of strings for a locale from a repository
+     * @param  string $locale     Locale we want to have strings for
+     * @param  string $repository string repository such as gaia_2_0, central...
+     * @return array  Localized strings or empty array if no match
+     */
+    public static function getRepoStrings($locale, $repository)
+    {
+        $locale = Project::getLocaleInContext($locale, $repository);
+
+        $file = TMX . "{$locale}/cache_{$locale}_{$repository}.php";
+
+        if (! $tmx = Cache::getKey($file)) {
+            if (is_file($file)) {
+                include $file;
+                Cache::setKey($file, $tmx);
+            }
+        }
+
+        return $tmx !== false ? $tmx : [];
+    }
+
+    /**
+     * Update the $regex_search_terms value every time
+     * a setter to the regex is triggered.
      *
      * @return $this
      */
     private function updateRegex()
     {
+        // Search for perfectMatch
         if ($this->regex_perfect_match) {
             $search =  '^' . $this->regex_search_terms . '$';
         } else {
@@ -164,6 +270,69 @@ class Search
             . 'u';
 
         return $this;
+    }
+
+    /**
+     * Return search results under this form:
+     * $data = [
+     * 	  'en-US' => [
+     * 	      'entity1' => 'string 1',
+     * 	      'entity2' => 'string 2',
+     * 	  ],
+     * 	  'fr' => [
+     * 	      'entity1' => 'string 1',
+     * 	      'entity2' => 'string 2',
+     * 	   ],
+     * ];
+     * We can have a third locale in the results for the 3 locales view.
+     *
+     * @return array Search results per locale
+     */
+    public function getResults()
+    {
+        // We use the search string as an array we loop into.
+        // Perfect matches have only one element in the array.
+        $words = [$this->regex_search_terms];
+        if (! $this->regex_perfect_match) {
+            $words = $this->uniqueWords($this->regex_search_terms);
+        }
+
+        // We use a closure here so as to not store all big arrays in
+        // temporary variables and consume memory.
+        $extract_strings = function($locale) use ($words) {
+            // Don't load data if we don't have search terms, return empty array
+            if (empty($words)) {
+                return [];
+            }
+
+            $strings = Utils::getRepoStrings($locale, $this->repository);
+            foreach ($words as $word) {
+                $this->setRegexSearchTerms($word);
+                $strings = preg_grep($this->regex, $strings);
+            }
+
+            // We reset the regex search terms before exiting the function
+            // because we don't want to keep the regex on a single word when we
+            // do a global search.
+            $this->setRegexSearchTerms($this->search_terms);
+
+            return $strings;
+        };
+
+        $data = [];
+        foreach($this->locales as $locale) {
+            $data[$locale] = $extract_strings($locale);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Get the maximum number of search results we return per locale
+     * @return int Max number
+     */
+    public function getLimit() {
+        return $this->limit;
     }
 
     /**

@@ -88,17 +88,28 @@ class Project
             $repositories[$repository['id']] = $repository['name'];
         }
 
+        // 'global' is a virtual repository
+        $repositories['global'] = 'All repositories';
+
         return $repositories;
     }
 
     /**
      * Get the list of repositories.
      *
-     * @return array list of local repositories values
+     * @param  boolean $include_virtual Include virtual repositories, default to false
+     * @return array   List of local repositories values
      */
-    public static function getRepositories()
+    public static function getRepositories($include_virtual = false)
     {
-        return array_keys(self::getSupportedRepositories());
+        $supported_repositories = array_keys(self::getSupportedRepositories());
+
+        if (! $include_virtual) {
+            $supported_repositories = array_diff($supported_repositories, ['global']);
+            $supported_repositories = array_values($supported_repositories);
+        }
+
+        return $supported_repositories;
     }
 
     /**
@@ -140,33 +151,44 @@ class Project
     {
         return array_diff(
             self::getRepositories(),
-            ['mozilla_org', 'firefox_ios'],
+            ['mozilla_org', 'firefox_ios', 'global'],
             self::getGaiaRepositories()
         );
     }
 
     /**
-     * Get the list of locales available for a repository
+     * Get the list of locales available for a repository.
+     * If the repository queried is 'global', then we return the locales
+     * for all the repositories we support.
      *
      * @param  string $repository ID of the repository
      * @return array  A sorted list of locales
      */
     public static function getRepositoryLocales($repository)
     {
-        $file_name = APP_SOURCES . "{$repository}.txt";
+        $repositories = ($repository == 'global')
+            ? self::getRepositories()
+            : [$repository];
+
         $supported_locales = [];
-        if (file_exists($file_name)) {
-            $supported_locales = file($file_name,  FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($repositories as $repository) {
+            $file_name = APP_SOURCES . "{$repository}.txt";
+            if (file_exists($file_name)) {
+                $supported_locales = array_merge(
+                    $supported_locales,
+                    file($file_name, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES)
+                );
+            }
+            // Make sure that the reference locale is included
+            $reference_locale = self::getReferenceLocale($repository);
+            if (! in_array($reference_locale, $supported_locales)) {
+                $supported_locales[] = $reference_locale;
+            }
         }
 
-        // Make sure that the reference locale is included
-        $reference_locale = self::getReferenceLocale($repository);
-        if (! in_array($reference_locale, $supported_locales)) {
-            $supported_locales[] = $reference_locale;
-        }
         sort($supported_locales);
 
-        return $supported_locales;
+        return array_unique($supported_locales);
     }
 
     /**
@@ -210,7 +232,7 @@ class Project
      */
     public static function isValidRepository($repository)
     {
-        return in_array($repository, self::getRepositories());
+        return in_array($repository, self::getRepositories(true));
     }
 
     /**
