@@ -78,7 +78,7 @@ if (! $search_yields_results) {
 }
 
 // Build logic to filter components
-$javascript_include[] = 'component_filter.js';
+$javascript_include[] = '/js/component_filter.js';
 $filter_block = '';
 
 // Remove duplicated components
