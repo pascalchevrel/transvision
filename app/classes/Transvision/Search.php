@@ -60,6 +60,12 @@ class Search
     public $regex_search_terms;
 
     /**
+     * The repository we search in. Default is Aurora
+     * @var string
+     */
+    public $repository;
+
+    /**
      * Maximum number of search results we return per locale
      * @var int
      */
@@ -70,11 +76,15 @@ class Search
      */
     public function __construct()
     {
+        $this->locales = [];
+        $this->search_terms = '';
+        $this->regex = '';
         $this->regex_case = 'i';
         $this->regex_whole_words = '';
         $this->regex_perfect_match = false;
-        $this->limit = 200;
         $this->regex_search_terms = '';
+        $this->repository = 'aurora';
+        $this->limit = 200;
     }
 
     /**
@@ -87,6 +97,7 @@ class Search
     {
         $this->search_terms = trim($string);
         $this->regex_search_terms = $this->search_terms;
+        $this->updateRegex();
 
         return $this;
     }
@@ -170,7 +181,7 @@ class Search
      */
     public function setRegexPerfectMatch($flag)
     {
-        $this->regex_perfect_match = $flag;
+        $this->regex_perfect_match = (boolean) $flag;
         $this->updateRegex();
 
         return $this;
@@ -179,7 +190,7 @@ class Search
     /**
      * Set the regex so as that a multi-word search is taken as a single word.
      *
-     * @param  boolean $flag Set to True for a contiguous words search
+     * @param  string $flag A string evaluated to True will add \b to the regex
      * @return $this
     */
     public function setRegexWholeWords($flag)
@@ -245,6 +256,11 @@ class Search
         // We use a closure here so as to not store all big arrays in
         // temporary variables and consume memory.
         $extract_strings = function($locale) use ($words) {
+            // Don't load data if we don't have search terms, return empty array
+            if (empty($words)) {
+                return [];
+            }
+
             $strings = Utils::getRepoStrings($locale, $this->repository);
             foreach ($words as $word) {
                 $this->setRegexSearchTerms($word);
@@ -262,7 +278,6 @@ class Search
         $data = [];
         foreach($this->locales as $locale) {
             $data[$locale] = $extract_strings($locale);
-            // $data[$locale] = array_slice($extract_strings($locale), 0, $this->limit);
         }
 
         return $data;
