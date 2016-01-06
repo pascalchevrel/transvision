@@ -13,7 +13,7 @@ foreach ($search_terms as $word) {
 }
 
 // Limit results to 200
-array_splice($locale1_strings, 200);
+array_splice($locale1_strings, $search->getLimit());
 
 $perfect = $imperfect = [];
 
