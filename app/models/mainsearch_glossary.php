@@ -12,7 +12,7 @@ foreach ($search_terms as $word) {
     $locale1_strings = preg_grep($search->getRegex(), $locale1_strings);
 }
 
-// Limit results to 200
+// Limit results
 array_splice($locale1_strings, $search->getLimit());
 
 $perfect = $imperfect = [];

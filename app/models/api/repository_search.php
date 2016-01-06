@@ -26,7 +26,8 @@ $search = (new Search)
     ->setSearchTerms(Utils::cleanString($initial_search))
     ->setRegexWholeWords($get_option('whole_word'))
     ->setRegexCaseInsensitive($get_option('case_sensitive'))
-    ->setRegexPerfectMatch($get_option('perfect_match'));
+    ->setRegexPerfectMatch($get_option('perfect_match'))
+    ->setLimit(500);
 
 // We loop through all repositories searched and merge results
 foreach ($repositories as $repository) {
@@ -68,9 +69,9 @@ foreach ($repositories as $repository) {
 ksort($source_strings_merged);
 ksort($target_strings_merged);
 
-// Limit results to 200
-array_splice($source_strings_merged, 500);
-array_splice($target_strings_merged, 500);
+// Limit results
+array_splice($source_strings_merged, $search->getLimit());
+array_splice($target_strings_merged, $search->getLimit());
 
 return $json = ShowResults::getRepositorySearchResults(
     $entities_merged,
