@@ -90,7 +90,7 @@ class Search
     /**
      * Store the searched string in $search_terms and in $regex_search_terms
      *
-     * @param [type] $string [description]
+     * @param  [type] $string [description]
      * @return $this
      */
     public function setSearchTerms($string)
@@ -106,7 +106,7 @@ class Search
      * Set the locales we want results for.
      * Normal searches work with 2 locales, but we also have a 3 locales view.
      *
-     * @param array $locales Locale codes
+     * @param  array $locales Locale codes
      * @return $this
      */
     public function setLocales(array $locales)
@@ -120,7 +120,7 @@ class Search
      * Set the repository in which we want to search for data.
      * Remember that 'global' will search through all supported repositories.
      *
-     * @param string $repository Valid repository from Project::getRepositories()
+     * @param  string $repository Valid repository from Project::getRepositories()
      * @return $this
      */
     public function setRepository($repository)
@@ -133,7 +133,7 @@ class Search
     /**
      * Set the maximum number of results we want to return per locale
      *
-     * @param int $number Maximum number of results
+     * @param  int   $number Maximum number of results
      * @return $this
      */
     public function setResultsLimit($number)
@@ -148,7 +148,7 @@ class Search
      * This is mostly useful when you have a multi-words search and need to
      * loop through all the words to return results.
      *
-     * @param string $string The string we want to update the regex for
+     * @param  string $string The string we want to update the regex for
      * @return $this
      */
     public function setRegexSearchTerms($string)
@@ -192,7 +192,7 @@ class Search
      *
      * @param  string $flag A string evaluated to True will add \b to the regex
      * @return $this
-    */
+     */
     public function setRegexWholeWords($flag)
     {
         $this->regex_whole_words = $flag ? '\b' : '';
@@ -299,7 +299,7 @@ class Search
 
         // We use a closure here so as to not store all big arrays in
         // temporary variables and consume memory.
-        $extract_strings = function($locale) use ($words) {
+        $extract_strings = function ($locale) use ($words) {
             // Don't load data if we don't have search terms, return empty array
             if (empty($words)) {
                 return [];
@@ -320,7 +320,7 @@ class Search
         };
 
         $data = [];
-        foreach($this->locales as $locale) {
+        foreach ($this->locales as $locale) {
             $data[$locale] = $extract_strings($locale);
         }
 
@@ -331,7 +331,8 @@ class Search
      * Get the maximum number of search results we return per locale
      * @return int Max number
      */
-    public function getLimit() {
+    public function getLimit()
+    {
         return $this->limit;
     }
 

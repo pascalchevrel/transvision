@@ -34,7 +34,7 @@ foreach ($repo_loop as $repository) {
     // This is the reference data
     $data = [
         Utils::getRepoStrings($source_locale, $repository),
-        Utils::getRepoStrings($locale, $repository)
+        Utils::getRepoStrings($locale, $repository),
     ];
 
     foreach ($search->getResults() as $key => $value) {

@@ -33,7 +33,7 @@ class Project extends atoum\test
     {
         $obj = new _Project();
         $repos = ['release', 'beta', 'aurora', 'central', 'gaia_2_0',
-                  'gaia_2_1', 'gaia', 'mozilla_org'];
+                  'gaia_2_1', 'gaia', 'mozilla_org', ];
         $this
             ->array($obj->getRepositories())
                 ->isEqualTo($repos);
@@ -102,7 +102,7 @@ class Project extends atoum\test
     public function getLocaleRepositoriesDP()
     {
         return [
-            ['fr', ['central', 'mozilla_org',]],
+            ['fr', ['central', 'mozilla_org']],
             ['foobar', []],
         ];
     }
