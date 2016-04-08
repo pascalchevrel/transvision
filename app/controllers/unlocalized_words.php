@@ -5,7 +5,7 @@ namespace Transvision;
 require_once INC . 'l10n-init.php';
 
 // Include JS lib after $javascript_include gets reset in l10n-init.php.
-$javascript_include = ['/js/sorttable.js'];
+$javascript_include = ['/js/sorttable.js', '/js/hide_table_rows.js'];
 
 include MODELS . 'unlocalized_words.php';
 
