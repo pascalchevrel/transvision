@@ -8,7 +8,7 @@ $(document).ready(function() {
     $chk.click(function() {
         var colToHide = $tblhead.filter('.' + $(this).attr('name'));
         var index = $(colToHide).index();
-        if(colToHide.css('display') === 'none'){
+        if (colToHide.css('display') === 'none') {
             $tbl.find('tr :nth-child(' + (index + 1) + ')').css('display', 'table-cell');
         } else {
             $tbl.find('tr :nth-child(' + (index + 1) + ')').css('display', 'none');
